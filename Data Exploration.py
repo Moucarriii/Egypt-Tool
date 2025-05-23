@@ -36,7 +36,7 @@ st.markdown("""
     display: inline-block;
     white-space: nowrap;
     padding-left: 100%;
-    animation: scroll 40s linear infinite;
+    animation: scroll 40s linear infinite;  /* adjust for speed */
 }
 .ticker__item {
     display: inline-block;
@@ -57,31 +57,25 @@ st.markdown("""
 @st.cache_data(show_spinner=False)
 def load_commodity_data():
     tickers = {
+        "Rice":         "ZR=F",
         "Wheat":        "ZW=F",
-        "Corn":         "ZC=F",
+        "Maize":        "ZC=F",
         "Soybeans":     "ZS=F",
-        "Sugar":        "SB=F",
-        "Coffee":       "KC=F",
-        "Cocoa":        "CC=F",
-        "Cotton":       "CT=F",
-        "Orange Juice": "OJ=F",
         "Soybean Oil":  "ZL=F",
         "Soybean Meal": "ZM=F",
-        "Crude Oil":    "CL=F",
-        "Natural Gas":  "NG=F",
-        "Live Cattle":  "LE=F",
-        "Lean Hogs":    "HE=F"
+        "Sugar":        "SB=F",
+        "Beef":   "LE=F",
+        "Oranges":      "OJ=F",
+        "Coffee":       "KC=F",
+        "Cocoa":        "CC=F"
     }
     data = {}
     for name, ticker in tickers.items():
         tk = yf.Ticker(ticker)
         info = tk.info
         price = info.get("regularMarketPrice") or info.get("previousClose") or None
-        prev = info.get("previousClose")
-        if price is not None and prev:
-            pct = (price - prev) / prev * 100
-        else:
-            pct = None
+        prev  = info.get("previousClose")
+        pct = (price - prev) / prev * 100 if price is not None and prev else None
         data[name] = {"price": price, "change": pct}
     return data
 
@@ -154,7 +148,6 @@ df_hist = load_data()
 # 5. Historical Data Explorer for Egypt
 # ------------------------------------------------------------------------------
 st.title("Historical Explorer — Egypt")
-
 df_plot = (
     df_hist
     .set_index('Year')[['Global Inflation Lag2', 'Egypt Inflation Lag2']]
@@ -214,10 +207,7 @@ st_echarts(chart_opts, height="600px")
 # ------------------------------------------------------------------------------
 # 7. Live Food Commodity Ticker Tape (below the chart)
 # ------------------------------------------------------------------------------
-st.markdown(
-    "<h3 style='text-align:center; margin-top:2rem;'>Live Food Commodity Prices</h3>",
-    unsafe_allow_html=True
-)
+st.markdown("<h3 style='text-align:center; margin-top:2rem;'>Live Food Commodity Prices</h3>", unsafe_allow_html=True)
 
 items = []
 for name, stats in commodity_data.items():
@@ -230,7 +220,6 @@ for name, stats in commodity_data.items():
         color = 'green' if pct >= 0 else 'red'
         sign  = '+' if pct >= 0 else ''
         change_html = f" <span style='color:{color};'>{sign}{pct:.2f}%</span>"
-
     items.append(f"<div class='ticker__item'>{name}: {price_str}{change_html}</div>")
 
 html = f"""
