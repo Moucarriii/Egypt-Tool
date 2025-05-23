@@ -12,11 +12,28 @@ import yfinance as yf
 st.set_page_config(layout="wide")
 
 # ------------------------------------------------------------------------------
-# App‐level password gate
+# App‐level password gate (show once, then hide on success)
 # ------------------------------------------------------------------------------
-password = st.text_input("Enter password", type="password")
-if password != "ffd":
-    st.warning("🔒 Please enter the password to continue.")
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+
+def authenticate():
+    if st.session_state.get("pwd") == "ffd":
+        st.session_state['authenticated'] = True
+    else:
+        st.session_state['authenticated'] = False
+
+if not st.session_state['authenticated']:
+    # input box with callback on change
+    st.text_input(
+        "Enter password", 
+        type="password", 
+        key="pwd", 
+        on_change=authenticate
+    )
+    # if they typed something incorrect, show error
+    if st.session_state.get("pwd") and not st.session_state['authenticated']:
+        st.error("Wrong password")
     st.stop()
 
 # ------------------------------------------------------------------------------
