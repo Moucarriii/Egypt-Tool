@@ -7,9 +7,21 @@ from streamlit_echarts import st_echarts
 import yfinance as yf
 
 # ------------------------------------------------------------------------------
-# 0. Full-width layout + CSS tweaks
+# Page config
 # ------------------------------------------------------------------------------
 st.set_page_config(layout="wide")
+
+# ------------------------------------------------------------------------------
+# App‐level password gate
+# ------------------------------------------------------------------------------
+password = st.text_input("Enter password", type="password")
+if password != "ffd":
+    st.warning("🔒 Please enter the password to continue.")
+    st.stop()
+
+# ------------------------------------------------------------------------------
+# 0. Full-width layout + CSS tweaks
+# ------------------------------------------------------------------------------
 st.markdown("""
 <style>
 /* Remove default Streamlit image shadows */
@@ -36,7 +48,7 @@ st.markdown("""
     display: inline-block;
     white-space: nowrap;
     padding-left: 100%;
-    animation: scroll 40s linear infinite;  /* adjust for speed */
+    animation: scroll 40s linear infinite;
 }
 .ticker__item {
     display: inline-block;
@@ -64,7 +76,7 @@ def load_commodity_data():
         "Soybean Oil":  "ZL=F",
         "Soybean Meal": "ZM=F",
         "Sugar":        "SB=F",
-        "Beef":   "LE=F",
+        "Meat, beef":   "LE=F",
         "Oranges":      "OJ=F",
         "Coffee":       "KC=F",
         "Cocoa":        "CC=F"
