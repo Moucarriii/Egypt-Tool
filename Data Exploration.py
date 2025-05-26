@@ -12,221 +12,190 @@ import yfinance as yf
 st.set_page_config(layout="wide")
 
 # ------------------------------------------------------------------------------
-# App‐level password gate (show once, then hide on success)
+# App‐level password gate
 # ------------------------------------------------------------------------------
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
 def authenticate():
-    if st.session_state.get("pwd") == "ffd":
-        st.session_state['authenticated'] = True
-    else:
-        st.session_state['authenticated'] = False
+    st.session_state['authenticated'] = (st.session_state.get("pwd") == "ffd")
 
 if not st.session_state['authenticated']:
-    # input box with callback on change
-    st.text_input(
-        "Enter password", 
-        type="password", 
-        key="pwd", 
-        on_change=authenticate
-    )
-    # if they typed something incorrect, show error
+    st.text_input("Enter password", type="password", key="pwd", on_change=authenticate)
     if st.session_state.get("pwd") and not st.session_state['authenticated']:
         st.error("Wrong password")
     st.stop()
 
 # ------------------------------------------------------------------------------
-# 0. Full-width layout + CSS tweaks
+# CSS tweaks
 # ------------------------------------------------------------------------------
 st.markdown("""
 <style>
-/* Remove default Streamlit image shadows */
-.stImage > div {
-    box-shadow: none !important;
-}
-/* Center each button */
-.stButton button {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-/* Ticker tape styling */
+.stImage > div { box-shadow: none !important; }
+.stButton button { display: block; margin: 0 auto; }
 .ticker-wrap {
-    width: 60%;
-    margin: 1rem auto;
-    overflow: hidden;
-    background: #f5f5f5;
-    border-top: 1px solid #ddd;
-    border-bottom: 1px solid #ddd;
-    padding: 0.5rem 0;
+    width: 60%; margin: 1rem auto; overflow: hidden;
+    background: #f5f5f5; border-top:1px solid #ddd;
+    border-bottom:1px solid #ddd; padding:0.5rem 0;
 }
 .ticker {
-    display: inline-block;
-    white-space: nowrap;
-    padding-left: 100%;
-    animation: scroll 40s linear infinite;
+    display: inline-block; white-space: nowrap;
+    padding-left: 100%; animation: scroll 40s linear infinite;
 }
 .ticker__item {
-    display: inline-block;
-    padding: 0 2rem;
-    font-size: 1.1rem;
-    color: #333;
+    display: inline-block; padding: 0 2rem;
+    font-size:1.1rem; color:#333;
 }
 @keyframes scroll {
-    0%   { transform: translateX(0); }
+    0% { transform: translateX(0); }
     100% { transform: translateX(-100%); }
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
-# Load and cache live commodity prices + change percent up front
+# Load live commodity prices + change percent
 # ------------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def load_commodity_data():
     tickers = {
-        "Rice":         "ZR=F",
-        "Wheat":        "ZW=F",
-        "Maize":        "ZC=F",
-        "Soybeans":     "ZS=F",
-        "Soybean Oil":  "ZL=F",
-        "Soybean Meal": "ZM=F",
-        "Sugar":        "SB=F",
-        "Meat, beef":   "LE=F",
-        "Oranges":      "OJ=F",
-        "Coffee":       "KC=F",
-        "Cocoa":        "CC=F"
+        "Rice":"ZR=F","Wheat":"ZW=F","Maize":"ZC=F",
+        "Soybeans":"ZS=F","Soybean Oil":"ZL=F","Soybean Meal":"ZM=F",
+        "Sugar":"SB=F","Beef":"LE=F","Oranges":"OJ=F",
+        "Coffee":"KC=F","Cocoa":"CC=F"
     }
     data = {}
-    for name, ticker in tickers.items():
-        tk = yf.Ticker(ticker)
-        info = tk.info
-        price = info.get("regularMarketPrice") or info.get("previousClose") or None
+    for name, t in tickers.items():
+        info = yf.Ticker(t).info
+        price = info.get("regularMarketPrice") or info.get("previousClose")
         prev  = info.get("previousClose")
-        pct = (price - prev) / prev * 100 if price is not None and prev else None
+        pct   = (price - prev)/prev*100 if price and prev else None
         data[name] = {"price": price, "change": pct}
     return data
 
 commodity_data = load_commodity_data()
 
 # ------------------------------------------------------------------------------
-# 1. Persist selected country in session_state
+# Persist selected country
 # ------------------------------------------------------------------------------
 if 'country' not in st.session_state:
     st.session_state['country'] = ''
 
 # ------------------------------------------------------------------------------
-# 2. Landing page: show flags until a country is chosen
+# Landing page: flags
 # ------------------------------------------------------------------------------
-if st.session_state['country'] == '':
+if st.session_state['country']=='':
     st.title("Select a Country")
     st.markdown("<div style='margin-bottom:40px'></div>", unsafe_allow_html=True)
-
-    flags = [
-        "Algeria", "Bahrain", "Egypt", "Jordan",
-        "Kuwait",  "Lebanon", "Morocco", "Oman",
-        "Qatar",   "Saudi",   "Tunisia","UAE"
-    ]
-
+    flags = ["Algeria","Bahrain","Egypt","Jordan","Kuwait","Lebanon",
+             "Morocco","Oman","Qatar","Saudi","Tunisia","UAE"]
     cols = st.columns(6)
-    for idx, country in enumerate(flags[:6]):
-        with cols[idx]:
-            st.image(os.path.join("Flags", f"{country}.png"), use_container_width=True)
-            if st.button(country, key=country):
-                st.session_state['country'] = country
+    for i,c in enumerate(flags[:6]):
+        with cols[i]:
+            st.image(os.path.join("Flags",f"{c}.png"),use_container_width=True)
+            if st.button(c,key=c): st.session_state['country']=c
     st.markdown("<div style='margin-top:30px'></div>", unsafe_allow_html=True)
-
     cols = st.columns(6)
-    for idx, country in enumerate(flags[6:]):
-        with cols[idx]:
-            st.image(os.path.join("Flags", f"{country}.png"), use_container_width=True)
-            if st.button(country, key=country):
-                st.session_state['country'] = country
-
+    for i,c in enumerate(flags[6:]):
+        with cols[i]:
+            st.image(os.path.join("Flags",f"{c}.png"),use_container_width=True)
+            if st.button(c,key=c): st.session_state['country']=c
     st.stop()
 
-# ------------------------------------------------------------------------------
-# 3. Non-Egypt warning + “Choose another country” button
-# ------------------------------------------------------------------------------
-if st.session_state['country'] != "Egypt":
+if st.session_state['country']!="Egypt":
     st.info("Forecasting is only available for Egypt.")
-    if st.button("Choose another country"):
-        st.session_state['country'] = ''
+    if st.button("Choose another country"): st.session_state['country']=''
     st.stop()
 
 # ------------------------------------------------------------------------------
-# 4. Load Egyptian historical data
+# Load inflation data
 # ------------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
-def load_data():
-    df = pd.read_excel('Python Data New - Interface.xlsx')
+def load_inflation():
+    df = pd.read_excel('Python Data New - Interface - Visuals.xlsx')
     df['Year'] = pd.to_datetime(df['Year'])
-    return (
-        df.sort_values('Year')
-          .dropna(subset=[
-              'Global Inflation',
-              'Egypt Inflation Lag2',
-              'Global Inflation Lag2'
-          ])
-    )
-
-df_hist = load_data()
+    return (df.sort_values('Year')
+              .dropna(subset=['Global Inflation','Egypt Inflation'])
+              .set_index('Year')[['Global Inflation','Egypt Inflation']]
+              .round(2))
+df_infl = load_inflation()
 
 # ------------------------------------------------------------------------------
-# 5. Historical Data Explorer for Egypt
+# Load subsidies + imports data
+# ------------------------------------------------------------------------------
+@st.cache_resource(show_spinner=False)
+def load_subsidies_imports():
+    df = pd.read_excel('Plots - Subsidies - Imports.xlsx')
+    df['Year'] = pd.to_datetime(df['Year'], format='%Y')
+    return (df.sort_values('Year')
+              .dropna(subset=['Subsidies','Food Imports'])
+              .set_index('Year')[['Subsidies','Food Imports']]
+              .round(2))
+df_sub_imp = load_subsidies_imports()
+
+# ------------------------------------------------------------------------------
+# Explorer title + selector
 # ------------------------------------------------------------------------------
 st.title("Historical Explorer — Egypt")
-df_plot = (
-    df_hist
-    .set_index('Year')[['Global Inflation Lag2', 'Egypt Inflation Lag2']]
-    .rename(columns={
-        'Global Inflation Lag2': 'Global Inflation',
-        'Egypt Inflation Lag2':  'Egypt Inflation'
-    })
-)
+chart_choice = st.radio("Select chart:", ["Inflation","Subsidies & Imports"])
 
-# ------------------------------------------------------------------------------
-# 6. ECharts timeline with initial full-series display
-# ------------------------------------------------------------------------------
-frames = df_plot.index.strftime('%b %Y').tolist()
+# Choose DataFrame
+if chart_choice=="Inflation":
+    df_plot = df_infl
+    x_labels = df_plot.index.strftime('%b %Y').tolist()
+else:
+    df_plot = df_sub_imp
+    x_labels = df_plot.index.year.astype(str).tolist()
+
+# Build timeline options
 options = []
-for i, frame in enumerate(frames):
-    subset = df_plot.iloc[:i+1]
+for i, label in enumerate(x_labels):
+    sub = df_plot.iloc[:i+1]
+    series = []
+    for col in df_plot.columns:
+        series.append({
+            'name': col,
+            'type': 'line',
+            'smooth': True,
+            'data': sub[col].tolist()
+        })
     options.append({
-        'title': {'text': frame},
-        'series': [
-            {'data': subset['Global Inflation'].tolist()},
-            {'data': subset['Egypt Inflation'].tolist()}
-        ]
+        'title': {'text': label},
+        'series': series
     })
 
+# Annotations only for inflation
+graphics = []
+if chart_choice=="Inflation" and st.checkbox("Show annotations", False):
+    graphics = [
+        {'type':'text','left':'35%','top':'21%',
+         'style':{'text':'The Central Bank floated the pound,\ncausing a 50% devaluation\nand a sharp rise in prices',
+                   'fill':'#91CC75','font':'14px sans-serif'}},
+        {'type':'text','left':'10%','top':'21%',
+         'style':{'text':'Global crop supply improved\nand oil prices eased, driving down food prices',
+                   'fill':'#5470C6','font':'14px sans-serif'}}
+    ]
+
+# Chart configuration
 chart_opts = {
     'baseOption': {
         'timeline': {
-            'data': frames,
+            'data': x_labels,
             'axisType': 'category',
             'autoPlay': False,
             'playInterval': 900,
-            'currentIndex': len(frames) - 1
+            'currentIndex': len(x_labels)-1
         },
         'tooltip': {'trigger': 'axis'},
-        'legend': {
-            'data': ['Global Inflation', 'Egypt Inflation'],
-            'left': 'center'
-        },
-        'xAxis': {
-            'type': 'category',
-            'data': frames
-        },
+        'legend': {'data': list(df_plot.columns), 'left': 'center'},
+        'xAxis': {'type': 'category', 'data': x_labels},
         'yAxis': {
             'type': 'value',
-            'name': 'Inflation Rate (%)'
+            'name': chart_choice + ' ($)',
+            'axisLabel': {'formatter': '${value}'}
         },
-        'series': [
-            {'name': 'Global Inflation', 'type': 'line', 'smooth': True},
-            {'name': 'Egypt Inflation',  'type': 'line', 'smooth': True}
-        ]
+        'series': [{'name': col, 'type': 'line', 'smooth': True} for col in df_plot.columns],
+        'graphic': graphics
     },
     'options': options
 }
@@ -234,28 +203,14 @@ chart_opts = {
 st_echarts(chart_opts, height="600px")
 
 # ------------------------------------------------------------------------------
-# 7. Live Food Commodity Ticker Tape (below the chart)
+# Live Food Commodity Ticker Tape
 # ------------------------------------------------------------------------------
 st.markdown("<h3 style='text-align:center; margin-top:2rem;'>Live Food Commodity Prices</h3>", unsafe_allow_html=True)
-
 items = []
-for name, stats in commodity_data.items():
-    price = stats['price']
-    pct   = stats['change']
-    price_str = f"{price:.2f}$" if price is not None else "N/A"
-    if pct is None:
-        change_html = ""
-    else:
-        color = 'green' if pct >= 0 else 'red'
-        sign  = '+' if pct >= 0 else ''
-        change_html = f" <span style='color:{color};'>{sign}{pct:.2f}%</span>"
-    items.append(f"<div class='ticker__item'>{name}: {price_str}{change_html}</div>")
-
-html = f"""
-<div class='ticker-wrap'>
-  <div class='ticker'>
-    {''.join(items)}
-  </div>
-</div>
-"""
+for name, s in commodity_data.items():
+    price,chg = s['price'],s['change']
+    pr_s = f"{price:.2f}$" if price else "N/A"
+    ch_s = f"<span style='color:{'green' if chg>=0 else 'red'};'>{'+' if chg>=0 else ''}{chg:.2f}%</span>" if chg else ""
+    items.append(f"<div class='ticker__item'>{name}: {pr_s} {ch_s}</div>")
+html = f"<div class='ticker-wrap'><div class='ticker'>{''.join(items)}</div></div>"
 st.markdown(html, unsafe_allow_html=True)
