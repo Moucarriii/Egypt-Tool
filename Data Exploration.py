@@ -172,7 +172,7 @@ if chart_choice=="Inflation" and st.checkbox("Show annotations", False):
          'style':{'text':'The Central Bank floated the pound,\ncausing a 50% devaluation\nand a sharp rise in prices',
                    'fill':'#91CC75','font':'14px sans-serif'}},
         {'type':'text','left':'10%','top':'21%',
-         'style':{'text':'Global crop supply improved\nand oil prices eased, driving down food prices',
+         'style':{'text':'Global crop supply improved\nand oil prices eased, driving \ndown food prices',
                    'fill':'#5470C6','font':'14px sans-serif'}}
     ]
 
