@@ -34,17 +34,25 @@ st.markdown("""
 .stImage > div { box-shadow: none !important; }
 .stButton button { display: block; margin: 0 auto; }
 .ticker-wrap {
-    width: 60%; margin: 1rem auto; overflow: hidden;
-    background: #f5f5f5; border-top:1px solid #ddd;
-    border-bottom:1px solid #ddd; padding:0.5rem 0;
+    width: 100%;
+    margin: 1rem 0;
+    overflow: hidden;
+    background: #f5f5f5;
+    border-top:1px solid #ddd;
+    border-bottom:1px solid #ddd;
+    padding:0.5rem 0;
 }
 .ticker {
-    display: inline-block; white-space: nowrap;
-    padding-left: 100%; animation: scroll 40s linear infinite;
+    display: inline-block;
+    white-space: nowrap;
+    padding-left: 100%;
+    animation: scroll 40s linear infinite;
 }
 .ticker__item {
-    display: inline-block; padding: 0 2rem;
-    font-size:1.1rem; color:#333;
+    display: inline-block;
+    padding: 0 2rem;
+    font-size:1.1rem;
+    color:#333;
 }
 @keyframes scroll {
     0% { transform: translateX(0); }
@@ -65,8 +73,8 @@ def load_commodity_data():
         "Coffee":"KC=F","Cocoa":"CC=F"
     }
     data = {}
-    for name, t in tickers.items():
-        info = yf.Ticker(t).info
+    for name, symbol in tickers.items():
+        info = yf.Ticker(symbol).info
         price = info.get("regularMarketPrice") or info.get("previousClose")
         prev  = info.get("previousClose")
         pct   = (price - prev)/prev*100 if price and prev else None
@@ -141,52 +149,68 @@ def load_sub_imp_nir():
 df_sub_imp_nir = load_sub_imp_nir()
 
 # ------------------------------------------------------------------------------
-# Explorer title + selector
+# Explorer title + selector buttons
 # ------------------------------------------------------------------------------
 st.title("Historical Explorer — Egypt")
-chart_choice = st.radio("Select chart:", ["Inflation","Subsidies & Imports & NIR"], horizontal=True)
+if 'chart_choice' not in st.session_state:
+    st.session_state['chart_choice'] = 'Inflation'
 
-# Choose DataFrame and x-axis labels
-if chart_choice == "Inflation":
+col1, col2, _ = st.columns([1,3,8])
+with col1:
+    if st.button("Inflation", key="btn_inf"):
+        st.session_state['chart_choice'] = 'Inflation'
+with col2:
+    if st.button("Subsidies & Imports & NIR", key="btn_sub"):
+        st.session_state['chart_choice'] = 'Subsidies & Imports & NIR'
+
+# ------------------------------------------------------------------------------
+# Prepare chart data
+# ------------------------------------------------------------------------------
+if st.session_state['chart_choice'] == 'Inflation':
     df_plot = df_infl
     x_labels = df_plot.index.strftime('%b %Y').tolist()
 else:
     df_plot = df_sub_imp_nir
     x_labels = df_plot.index.year.astype(str).tolist()
 
-# Build timeline options with NIR as bar
 options = []
-for i, label in enumerate(x_labels):
-    sub = df_plot.iloc[:i+1]
+for i in range(len(x_labels)):
+    slice_df = df_plot.iloc[:i+1]
     series = []
     for col in df_plot.columns:
-        s = {
-            'name': col,
-            'data': sub[col].tolist()
-        }
-        if col == 'NIR':
-            s.update({'type': 'bar', 'yAxisIndex': 1})
+        cfg = {'name': col, 'data': slice_df[col].tolist()}
+        if st.session_state['chart_choice'] != 'Inflation' and col == 'NIR':
+            cfg.update({'type': 'bar', 'yAxisIndex': 1})
         else:
-            s.update({'type': 'line', 'smooth': True})
-        series.append(s)
-    options.append({
-        'title': {'text': label},
-        'series': series
-    })
+            cfg.update({'type': 'line', 'smooth': True})
+        series.append(cfg)
+    options.append({'series': series})
 
-# Annotations only for inflation
-graphics = []
-if chart_choice == "Inflation" and st.checkbox("Show annotations", False):
-    graphics = [
-        {'type':'text','left':'35%','top':'21%',
-         'style':{'text':'The Central Bank floated the pound,\ncausing a 50% devaluation\nand a sharp rise in prices',
-                  'fill':'#91CC75','font':'14px sans-serif'}},
-        {'type':'text','left':'10%','top':'21%',
-         'style':{'text':'Global crop supply improved\nand oil prices eased, driving down food prices',
-                  'fill':'#5470C6','font':'14px sans-serif'}}
+# Axis settings
+y_axes = []
+if st.session_state['chart_choice'] == 'Inflation':
+    y_axes = [{
+        'type': 'value',
+        'name': 'Inflation (%)',
+        'axisLabel': {'formatter': '{value}%'}
+    }]
+else:
+    y_axes = [
+        {'type': 'value', 'name': 'Subsidies & Imports ($)', 'axisLabel': {'formatter': '${value}'}},
+        {'type': 'value', 'name': 'NIR', 'position': 'right'}
     ]
 
-# Chart configuration with dual y-axes
+# Annotations for inflation only
+graphics = []
+if st.session_state['chart_choice'] == 'Inflation' and st.checkbox("Show annotations", key="anno"):
+    graphics = [
+        {'type':'text','left':'35%','top':'20%','style':{'text':'Central Bank floated the pound \n(50% deval)','fill':'#91CC75','font':'14px sans-serif'}},
+        {'type':'text','left':'12%','top':'20%','style':{'text':'Global supply improved, \noil prices eased','fill':'#5470C6','font':'14px sans-serif'}}
+    ]
+
+# ------------------------------------------------------------------------------
+# Chart config with full-width timeline
+# ------------------------------------------------------------------------------
 chart_opts = {
     'baseOption': {
         'timeline': {
@@ -194,24 +218,17 @@ chart_opts = {
             'axisType': 'category',
             'autoPlay': False,
             'playInterval': 900,
-            'currentIndex': len(x_labels) - 1
+            'currentIndex': len(x_labels) - 1,
+            'left': '5%',
+            'right': '5%',
+            'label':     {'show': False},
+            'axisLabel': {'show': False}
         },
         'tooltip': {'trigger': 'axis'},
         'legend': {'data': list(df_plot.columns), 'left': 'center'},
         'xAxis': {'type': 'category', 'data': x_labels},
-        'yAxis': [
-            {
-                'type': 'value',
-                'name': chart_choice.replace('& NIR','') + ' ($)',
-                'axisLabel': {'formatter': '${value}'}
-            },
-            {
-                'type': 'value',
-                'name': 'NIR',
-                'position': 'right'
-            }
-        ],
-        'series': series,
+        'yAxis': y_axes,
+        'series': options[-1]['series'],
         'graphic': graphics
     },
     'options': options
@@ -222,14 +239,15 @@ st_echarts(chart_opts, height="600px")
 # ------------------------------------------------------------------------------
 # Live Food Commodity Ticker Tape
 # ------------------------------------------------------------------------------
-st.markdown("<h3 style='text-align:center; margin-top:2rem;'>Live Food Commodity Prices</h3>",
-            unsafe_allow_html=True)
+st.markdown(
+    "<h3 style='text-align:center; margin-top:2rem;'>Live Food Commodity Prices</h3>",
+    unsafe_allow_html=True
+)
 items = []
 for name, s in commodity_data.items():
     price, chg = s['price'], s['change']
     pr_s = f"{price:.2f}$" if price else "N/A"
-    ch_s = f"<span style='color:{'green' if chg>=0 else 'red'};'>{'+' if chg>=0 else ''}{chg:.2f}%</span>" if chg else ""
+    ch_s = f"<span style='color:{'green' if chg>=0 else 'red'};'>{'+' if chg>=0 else ''}{chg:.2f}%</span>" if chg is not None else ""
     items.append(f"<div class='ticker__item'>{name}: {pr_s} {ch_s}</div>")
-
 html = f"<div class='ticker-wrap'><div class='ticker'>{''.join(items)}</div></div>"
 st.markdown(html, unsafe_allow_html=True)
