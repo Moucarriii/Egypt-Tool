@@ -3,8 +3,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import ElasticNet
 import altair as alt
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model  import Ridge
+
 
 # ------------------------------------------------------------------------------
 # Button styling: colored backgrounds, shading, no-wrap
@@ -50,10 +53,12 @@ def load_and_train():
     features = [
         'Exchange Rate Growth','Global Inflation',
         'Egypt Inflation Lag1','Egypt Inflation Lag2',
-        'Global Inflation Lag1','Global Inflation Lag2'
+        'Global Inflation Lag1'
     ]
-    model = ElasticNet(alpha=1.0, l1_ratio=0.9,
-                       random_state=42, max_iter=10000)
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('ridge', Ridge(alpha=0.001, random_state=42))
+    ])
     model.fit(df[features], df['Egypt Inflation'])
     return model, df
 
@@ -106,7 +111,7 @@ if not st.session_state['run_forecast']:
 ei_lag1 = last['Egypt Inflation']
 ei_lag2 = last['Egypt Inflation Lag1']
 gi_lag1 = last['Global Inflation']
-gi_lag2 = last['Global Inflation Lag1']
+
 
 forecasts = []
 for i, dt in enumerate(forecast_dates):
@@ -115,13 +120,12 @@ for i, dt in enumerate(forecast_dates):
         'Global Inflation':     gi_future[i],
         'Egypt Inflation Lag1': ei_lag1,
         'Egypt Inflation Lag2': ei_lag2,
-        'Global Inflation Lag1': gi_lag1,
-        'Global Inflation Lag2': gi_lag2
+        'Global Inflation Lag1': gi_lag1
     }
     pred = model.predict(pd.DataFrame([feat]))[0]
     forecasts.append({'Year': dt, 'Inflation': pred})
     ei_lag2, ei_lag1 = ei_lag1, pred
-    gi_lag2, gi_lag1 = gi_lag1, gi_future[i]
+    gi_lag1 = gi_future[i]
 
 df_fc = pd.DataFrame(forecasts)
 
