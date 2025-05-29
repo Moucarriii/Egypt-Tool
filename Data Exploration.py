@@ -1,5 +1,3 @@
-# Data Exploration.py
-
 import streamlit as st
 import pandas as pd
 import os
@@ -32,32 +30,43 @@ if not st.session_state['authenticated']:
 st.markdown("""
 <style>
 .stImage > div { box-shadow: none !important; }
-.stButton button { display: block; margin: 0 auto; }
+
+/* Shade & full-width for all buttons by default */
+.stButton button {
+    white-space: nowrap !important;
+    background-color: #e0f7fa !important;    /* light cyan */
+    border: none !important;
+    border-radius: 5px !important;
+    padding: 0.5rem 1rem !important;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1) !important;
+    color: #00796b !important;               /* dark teal text */
+    width: 100% !important;
+    margin: 0 !important;
+}
+.stButton button:focus,
+.stButton button:hover {
+    background-color: #b2ebf2 !important;
+}
+
+/* Chart-selector buttons should shrink to content */
+.chart-btns .stButton button {
+    width: auto !important;
+}
+
+/* ticker tape styling */
 .ticker-wrap {
-    width: 100%;
-    margin: 1rem 0;
-    overflow: hidden;
-    background: #f5f5f5;
-    border-top:1px solid #ddd;
-    border-bottom:1px solid #ddd;
+    width: 100%; margin: 1rem 0; overflow: hidden;
+    background: #f5f5f5; border-top:1px solid #ddd; border-bottom:1px solid #ddd;
     padding:0.5rem 0;
 }
 .ticker {
-    display: inline-block;
-    white-space: nowrap;
-    padding-left: 100%;
+    display: inline-block; white-space: nowrap; padding-left:100%;
     animation: scroll 40s linear infinite;
 }
 .ticker__item {
-    display: inline-block;
-    padding: 0 2rem;
-    font-size:1.1rem;
-    color:#333;
+    display: inline-block; padding:0 2rem; font-size:1.1rem; color:#333;
 }
-@keyframes scroll {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
-}
+@keyframes scroll { 0% {transform: translateX(0);} 100% {transform: translateX(-100%);} }
 </style>
 """, unsafe_allow_html=True)
 
@@ -155,6 +164,8 @@ st.title("Historical Explorer — Egypt")
 if 'chart_choice' not in st.session_state:
     st.session_state['chart_choice'] = 'Inflation'
 
+# wrap just these two in chart-btns so they shrink
+st.markdown("<div class='chart-btns'>", unsafe_allow_html=True)
 col1, col2, _ = st.columns([1,3,8])
 with col1:
     if st.button("Inflation", key="btn_inf"):
@@ -162,6 +173,7 @@ with col1:
 with col2:
     if st.button("Subsidies & Imports & NIR", key="btn_sub"):
         st.session_state['chart_choice'] = 'Subsidies & Imports & NIR'
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
 # Prepare chart data
@@ -186,30 +198,34 @@ for i in range(len(x_labels)):
         series.append(cfg)
     options.append({'series': series})
 
-# Axis settings
-y_axes = []
+# ------------------------------------------------------------------------------
+# Axis settings (only left gridlines)
+# ------------------------------------------------------------------------------
 if st.session_state['chart_choice'] == 'Inflation':
     y_axes = [{
         'type': 'value',
         'name': 'Inflation (%)',
-        'axisLabel': {'formatter': '{value}%'}
+        'axisLabel': {'formatter': '{value}%'},
+        'splitLine': {'show': True}
     }]
 else:
     y_axes = [
-        {'type': 'value', 'name': 'Subsidies & Imports ($)', 'axisLabel': {'formatter': '${value}'}},
-        {'type': 'value', 'name': 'NIR', 'position': 'right'}
-    ]
-
-# Annotations for inflation only
-graphics = []
-if st.session_state['chart_choice'] == 'Inflation' and st.checkbox("Show annotations", key="anno"):
-    graphics = [
-        {'type':'text','left':'35%','top':'20%','style':{'text':'Central Bank floated the pound \n(50% deval)','fill':'#91CC75','font':'14px sans-serif'}},
-        {'type':'text','left':'12%','top':'20%','style':{'text':'Global supply improved, \noil prices eased','fill':'#5470C6','font':'14px sans-serif'}}
+        {'type': 'value', 'name': 'Subsidies & Imports ($)', 'axisLabel': {'formatter': '${value}'}, 'splitLine': {'show': True}},
+        {'type': 'value', 'name': 'NIR', 'position': 'right', 'axisLabel': {'formatter': '{value}'}, 'splitLine': {'show': False}}
     ]
 
 # ------------------------------------------------------------------------------
-# Chart config with full-width timeline
+# Optional annotations
+# ------------------------------------------------------------------------------
+graphics = []
+if st.session_state['chart_choice']=='Inflation' and st.checkbox("Show annotations", key="anno"):
+    graphics = [
+        {'type':'text','left':'35%','top':'20%','style':{'text':'Currency Devaluation','fill':'#91CC75','font':'14px sans-serif'}},
+        {'type':'text','left':'12%','top':'20%','style':{'text':'Global supply, \\noil prices eased','fill':'#5470C6','font':'14px sans-serif'}}
+    ]
+
+# ------------------------------------------------------------------------------
+# Chart config & render
 # ------------------------------------------------------------------------------
 chart_opts = {
     'baseOption': {
@@ -218,31 +234,24 @@ chart_opts = {
             'axisType': 'category',
             'autoPlay': False,
             'playInterval': 900,
-            'currentIndex': len(x_labels) - 1,
-            'left': '5%',
-            'right': '5%',
-            'label':     {'show': False},
-            'axisLabel': {'show': False}
+            'currentIndex': len(x_labels)-1,
+            'left': '5%', 'right': '5%',
+            'label': {'show': False}, 'axisLabel': {'show': False}
         },
-        'tooltip': {'trigger': 'axis'},
+        'tooltip': {'trigger':'axis'},
         'legend': {'data': list(df_plot.columns), 'left': 'center'},
-        'xAxis': {'type': 'category', 'data': x_labels},
+        'xAxis': {'type':'category','data': x_labels},
         'yAxis': y_axes,
         'series': options[-1]['series'],
         'graphic': graphics
     },
     'options': options
 }
-
 st_echarts(chart_opts, height="600px")
 
 # ------------------------------------------------------------------------------
 # Live Food Commodity Ticker Tape
 # ------------------------------------------------------------------------------
-st.markdown(
-    "<h3 style='text-align:center; margin-top:2rem;'>Live Food Commodity Prices</h3>",
-    unsafe_allow_html=True
-)
 items = []
 for name, s in commodity_data.items():
     price, chg = s['price'], s['change']
