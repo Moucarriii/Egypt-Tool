@@ -34,18 +34,18 @@ st.markdown("""
 /* Shade & full-width for all buttons by default */
 .stButton button {
     white-space: nowrap !important;
-    background-color: #e0f7fa !important;    /* light cyan */
+    background-color: #ffccbc !important;    /* light cyan */
     border: none !important;
     border-radius: 5px !important;
     padding: 0.5rem 1rem !important;
     box-shadow: 2px 2px 5px rgba(0,0,0,0.1) !important;
-    color: #00796b !important;               /* dark teal text */
+    color: #000 !important;               /* dark teal text */
     width: 100% !important;
     margin: 0 !important;
 }
 .stButton button:focus,
 .stButton button:hover {
-    background-color: #b2ebf2 !important;
+    background-color: #ffab91 !important;
 }
 
 /* Chart-selector buttons should shrink to content */
@@ -221,7 +221,7 @@ graphics = []
 if st.session_state['chart_choice']=='Inflation' and st.checkbox("Show annotations", key="anno"):
     graphics = [
         {'type':'text','left':'35%','top':'20%','style':{'text':'Currency Devaluation','fill':'#91CC75','font':'14px sans-serif'}},
-        {'type':'text','left':'12%','top':'20%','style':{'text':'Global supply, \\noil prices eased','fill':'#5470C6','font':'14px sans-serif'}}
+        {'type':'text','left':'12%','top':'20%','style':{'text':'Global supply, \noil prices eased','fill':'#5470C6','font':'14px sans-serif'}}
     ]
 
 # ------------------------------------------------------------------------------
