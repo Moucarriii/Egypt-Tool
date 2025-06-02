@@ -17,15 +17,15 @@ st.markdown("""
 /* All selector buttons */
 .stButton button {
     white-space: nowrap !important;
-    background-color: #e0f7fa !important;    /* light cyan */
+    background-color: #ffccbc !important;    /* light cyan */
     border-radius: 5px !important;
     padding: 0.5rem 1rem !important;
     box-shadow: 2px 2px 5px rgba(0,0,0,0.1) !important;
-    color: #00796b !important;               /* dark teal text */
+    color: #000 !important;               /* dark teal text */
 }
 /* Highlight active button */
 .stButton button:focus, .stButton button:hover {
-    background-color: #b2ebf2 !important;
+    background-color: #ffab91 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -135,7 +135,7 @@ df_fc = pd.DataFrame(forecasts)
 if 'view_choice' not in st.session_state:
     st.session_state['view_choice'] = 'Yearly average'
 
-col1, col2, _ = st.columns([2, 1, 8])
+col1, col2, _ = st.columns([1, 1, 8])
 with col1:
     if st.button("Yearly average", key="btn_yearly"):
         st.session_state['view_choice'] = 'Yearly average'
@@ -223,25 +223,138 @@ with st.expander("Show Forecast Data"):
 
 # --------------------------------------------------------------------------
 # 8. Percentage Contributions
+import plotly.graph_objects as go
+
+# --------------------------------------------------------------------------
+# 8. Percentage Contributions with interactive year selection and stacked bar chart
 # --------------------------------------------------------------------------
 st.subheader("Percentage Contributions")
-contrib_df = pd.DataFrame({
-    'Category': ['World Food','Subsidy','Own Shocks'],
-    'Value':    [8.7, 2.5, 76]
-})
-contrib_df['Dummy'] = ' '
-contrib_chart = (
-    alt.Chart(contrib_df)
-       .mark_bar()
-       .encode(
-           y=alt.Y('Dummy:N', axis=None),
-           x=alt.X('Value:Q', stack='zero', axis=alt.Axis(title='% Contribution')),
-           color=alt.Color('Category:N',
-                           legend=alt.Legend(title=None,
-                                            orient='bottom',
-                                            direction='horizontal')),  
-           tooltip=['Category','Value']
-       )
-       .properties(width=600, height=200)
+
+# Load the full dataset for contributions
+xlsx_path = "StackedBar - Copy.xlsx"
+contrib_full_df = pd.read_excel(xlsx_path)
+
+# Year selection dropdown
+selected_year = st.selectbox(
+    "Select Year for Contribution Breakdown",
+    options=contrib_full_df['Year'].astype(str).tolist()
 )
-st.altair_chart(contrib_chart, use_container_width=True)
+
+# Filter dataset for selected year
+row = contrib_full_df[contrib_full_df['Year'].astype(str) == selected_year].iloc[0]
+year_label = str(int(row["Year"]))
+
+# Define desired legend order
+desired_order = [
+    "World Food Price (increase)",
+    "World Food Price (decrease)",
+    "Exchange Rate (depreciation)",
+    "Exchange Rate (appreciation)",
+    "Other Factors",
+    "Unexplained (residuals)"
+]
+
+# Extract values in that order
+cats = []
+vals = []
+for cat in desired_order:
+    if cat in row.index:
+        cats.append(cat)
+        vals.append(float(row[cat]))
+
+# Split into negative and positive preserving order
+neg_data = []
+pos_data = []
+for cat, val in zip(cats, vals):
+    if val < 0:
+        neg_data.append((cat, val))
+    else:
+        pos_data.append((cat, val))
+
+# Define colors
+color_map = {
+    "World Food Price (increase)": "#1F3B73",
+    "World Food Price (decrease)": "#8B0000",
+    "Exchange Rate (depreciation)": "#89CFF0",
+    "Exchange Rate (appreciation)": "#F08080",
+    "Other Factors": "#FFB347",
+    "Unexplained (residuals)": "#FF8C00"
+}
+
+# Build Plotly figure
+fig = go.Figure()
+
+neg_base = 0.0
+for cat, val in neg_data:
+    fig.add_trace(go.Bar(
+        y=[year_label],
+        x=[val],
+        name=cat,
+        orientation='h',
+        marker=dict(color=color_map[cat]),
+        base=[neg_base],
+        customdata=[val],
+        hovertemplate=f"<b>{cat}</b><br>Value: %{{customdata}}<extra></extra>"
+    ))
+    neg_base += val
+
+pos_base = 0.0
+for cat, val in pos_data:
+    fig.add_trace(go.Bar(
+        y=[year_label],
+        x=[val],
+        name=cat,
+        orientation='h',
+        marker=dict(color=color_map[cat]),
+        base=[pos_base],
+        customdata=[val],
+        hovertemplate=f"<b>{cat}</b><br>Value: %{{customdata}}<extra></extra>"
+    ))
+    pos_base += val
+
+fig.update_layout(
+    title=dict(
+        text="Decomposition of Domestic Food Price Change in Egypt",
+        x=0.5, xanchor="center",
+        font=dict(size=16)
+    ),
+    barmode='relative',
+    template='plotly_white',
+    height=350,
+    margin=dict(l=40, r=40, t=60, b=80),
+    xaxis=dict(
+        title="",
+        showline=True,
+        linecolor="black",
+        linewidth=1,
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor="black",
+        showgrid=False,
+        tickmode='array',
+        tickvals=[-100, -80, -60, -40, -20, 0, 20, 40, 60, 80, 100, 120, 140, 160],
+        ticks="outside",
+        tickfont=dict(size=12)
+    ),
+    yaxis=dict(
+        title="",
+        tickmode='array',
+        tickvals=[year_label],
+        ticktext=[year_label],
+        ticks="",
+        showgrid=False,
+        showline=False
+    ),
+    legend=dict(
+        orientation="h",
+        y=-0.25,
+        x=0.5,
+        xanchor="center",
+        yanchor="top",
+        font=dict(size=12),
+        bgcolor="rgba(0,0,0,0)"
+    ),
+    showlegend=True
+)
+
+st.plotly_chart(fig, use_container_width=True)
