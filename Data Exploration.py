@@ -4,14 +4,14 @@ import os
 from streamlit_echarts import st_echarts
 import yfinance as yf
 
-# ------------------------------------------------------------------------------
-# Page config
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Page config 
+# ------------------------------------------------------------------------------ 
 st.set_page_config(layout="wide")
 
-# ------------------------------------------------------------------------------
-# App‐level password gate
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# App-level password gate 
+# ------------------------------------------------------------------------------ 
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
@@ -24,14 +24,13 @@ if not st.session_state['authenticated']:
         st.error("Wrong password")
     st.stop()
 
-# ------------------------------------------------------------------------------
-# CSS tweaks
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# CSS tweaks 
+# ------------------------------------------------------------------------------ 
 st.markdown("""
 <style>
 .stImage > div { box-shadow: none !important; }
 
-/* Shade & full-width for all buttons by default */
 .stButton button {
     white-space: nowrap !important;
     background-color: #ffccbc !important;    /* light cyan */
@@ -47,32 +46,12 @@ st.markdown("""
 .stButton button:hover {
     background-color: #ffab91 !important;
 }
-
-/* Chart-selector buttons should shrink to content */
-.chart-btns .stButton button {
-    width: auto !important;
-}
-
-/* ticker tape styling */
-.ticker-wrap {
-    width: 100%; margin: 1rem 0; overflow: hidden;
-    background: #f5f5f5; border-top:1px solid #ddd; border-bottom:1px solid #ddd;
-    padding:0.5rem 0;
-}
-.ticker {
-    display: inline-block; white-space: nowrap; padding-left:100%;
-    animation: scroll 40s linear infinite;
-}
-.ticker__item {
-    display: inline-block; padding:0 2rem; font-size:1.1rem; color:#333;
-}
-@keyframes scroll { 0% {transform: translateX(0);} 100% {transform: translateX(-100%);} }
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------------------------------------------
-# Load live commodity prices + change percent
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Load live commodity prices + change percent 
+# ------------------------------------------------------------------------------ 
 @st.cache_data(show_spinner=False)
 def load_commodity_data():
     tickers = {
@@ -83,24 +62,28 @@ def load_commodity_data():
     }
     data = {}
     for name, symbol in tickers.items():
-        info = yf.Ticker(symbol).info
-        price = info.get("regularMarketPrice") or info.get("previousClose")
-        prev  = info.get("previousClose")
-        pct   = (price - prev)/prev*100 if price and prev else None
-        data[name] = {"price": price, "change": pct}
+        try:
+            info = yf.Ticker(symbol).info
+            price = info.get("regularMarketPrice") or info.get("previousClose")
+            prev  = info.get("previousClose")
+            pct   = (price - prev)/prev*100 if price and prev else None
+            data[name] = {"price": price, "change": pct}
+        except Exception as e:
+            st.warning(f"Failed to fetch data for {name}: {e}")
+            data[name] = {"price": None, "change": None}  # Set to None if failure
     return data
 
 commodity_data = load_commodity_data()
 
-# ------------------------------------------------------------------------------
-# Persist selected country
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Persist selected country 
+# ------------------------------------------------------------------------------ 
 if 'country' not in st.session_state:
     st.session_state['country'] = ''
 
-# ------------------------------------------------------------------------------
-# Landing page: flags
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Landing page: flags 
+# ------------------------------------------------------------------------------ 
 if st.session_state['country'] == '':
     st.title("Select a Country")
     st.markdown("<div style='margin-bottom:40px'></div>", unsafe_allow_html=True)
@@ -127,9 +110,9 @@ if st.session_state['country'] != "Egypt":
         st.session_state['country'] = ''
     st.stop()
 
-# ------------------------------------------------------------------------------
-# Load inflation data
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Load inflation data 
+# ------------------------------------------------------------------------------ 
 @st.cache_resource(show_spinner=False)
 def load_inflation():
     df = pd.read_excel('Python Data New - Interface - Visuals.xlsx')
@@ -142,9 +125,9 @@ def load_inflation():
     )
 df_infl = load_inflation()
 
-# ------------------------------------------------------------------------------
-# Load subsidies, imports, and NIR data
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Load subsidies, imports, and NIR data 
+# ------------------------------------------------------------------------------ 
 @st.cache_resource(show_spinner=False)
 def load_sub_imp_nir():
     df = pd.read_excel('Plots - Subsidies - Imports - NIR.xlsx')
@@ -157,9 +140,9 @@ def load_sub_imp_nir():
     )
 df_sub_imp_nir = load_sub_imp_nir()
 
-# ------------------------------------------------------------------------------
-# Explorer title + selector buttons
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Explorer title + selector buttons 
+# ------------------------------------------------------------------------------ 
 st.title("Historical Explorer — Egypt")
 if 'chart_choice' not in st.session_state:
     st.session_state['chart_choice'] = 'Inflation'
@@ -175,9 +158,9 @@ with col2:
         st.session_state['chart_choice'] = 'Subsidies & Imports & NIR'
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ------------------------------------------------------------------------------
-# Prepare chart data
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Prepare chart data 
+# ------------------------------------------------------------------------------ 
 if st.session_state['chart_choice'] == 'Inflation':
     df_plot = df_infl
     x_labels = df_plot.index.strftime('%b %Y').tolist()
@@ -198,25 +181,25 @@ for i in range(len(x_labels)):
         series.append(cfg)
     options.append({'series': series})
 
-# ------------------------------------------------------------------------------
-# Axis settings (only left gridlines)
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Axis settings (only left gridlines) 
+# ------------------------------------------------------------------------------ 
 if st.session_state['chart_choice'] == 'Inflation':
-    y_axes = [{
+    y_axes = [ {
         'type': 'value',
         'name': 'Inflation (%)',
         'axisLabel': {'formatter': '{value}%'},
         'splitLine': {'show': True}
-    }]
+    } ]
 else:
-    y_axes = [
+    y_axes = [ 
         {'type': 'value', 'name': 'Subsidies & Imports ($)', 'axisLabel': {'formatter': '${value}'}, 'splitLine': {'show': True}},
         {'type': 'value', 'name': 'NIR', 'position': 'right', 'axisLabel': {'formatter': '{value}'}, 'splitLine': {'show': False}}
     ]
 
-# ------------------------------------------------------------------------------
-# Optional annotations
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Optional annotations 
+# ------------------------------------------------------------------------------ 
 graphics = []
 if st.session_state['chart_choice']=='Inflation' and st.checkbox("Show annotations", key="anno"):
     graphics = [
@@ -224,9 +207,9 @@ if st.session_state['chart_choice']=='Inflation' and st.checkbox("Show annotatio
         {'type':'text','left':'12%','top':'20%','style':{'text':'Global supply, \noil prices eased','fill':'#5470C6','font':'14px sans-serif'}}
     ]
 
-# ------------------------------------------------------------------------------
-# Chart config & render
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Chart config & render 
+# ------------------------------------------------------------------------------ 
 chart_opts = {
     'baseOption': {
         'timeline': {
@@ -249,9 +232,9 @@ chart_opts = {
 }
 st_echarts(chart_opts, height="600px")
 
-# ------------------------------------------------------------------------------
-# Live Food Commodity Ticker Tape
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ 
+# Live Food Commodity Ticker Tape 
+# ------------------------------------------------------------------------------ 
 items = []
 for name, s in commodity_data.items():
     price, chg = s['price'], s['change']
