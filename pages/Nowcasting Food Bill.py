@@ -358,3 +358,106 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# --------------------------------------------------------------------------
+# 9. Food Price Adjustment based on Forecast Inflation
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 9. Food Price Adjustment based on Forecast Inflation
+# --------------------------------------------------------------------------
+
+# Load the FoodPricesTest dataset (containing food names and prices)
+food_prices_df = pd.read_excel("FoodPricesTest.xlsx")
+
+# Fetch the inflation rate for the forecasted months using the forecasted inflation values from df_fc
+# Calculate the average inflation for the forecast period
+inflation_rate = np.mean(df_fc['Inflation']) / 100  # Convert percentage to decimal
+
+# Display the inflation rate to verify if the correct value is being used
+st.markdown(f"**Inflation Rate Used for Adjustment**: {inflation_rate * 100:.2f}%")
+
+# Adjust food prices based on the forecasted inflation
+food_prices_df['Adjusted Price'] = food_prices_df['Price'] * (1 + inflation_rate)
+
+# Calculate the total value (Adjusted Price * Quantity)
+food_prices_df['Total Value'] = food_prices_df['Adjusted Price'] * food_prices_df['Quantity']
+
+# --------------------------------------------------------------------------
+# Interactive Category Filter
+# --------------------------------------------------------------------------
+
+# Get the unique food categories
+categories = food_prices_df['Category'].unique()
+
+# Dropdown to select category
+selected_category = st.selectbox(
+    "Select Food Category",
+    options=list(categories)
+)
+
+# Filter the dataframe based on the selected category
+if selected_category != 'All Categories':
+    food_prices_df = food_prices_df[food_prices_df['Category'] == selected_category]
+
+# --------------------------------------------------------------------------
+# Interactive Year Selection (if forecast > 12 months)
+# --------------------------------------------------------------------------
+
+# Calculate the number of full years and extra months in the forecast
+num_months = len(forecast_dates)
+full_years = num_months // 12  # Full years
+extra_months = num_months % 12  # Extra months after full years
+
+# Prepare a list of years for which to show food prices
+years_to_show = []
+if full_years > 0:
+    years_to_show.append(f"Year 1: {start_date.year} (Forecast for {full_years} year{'s' if full_years > 1 else ''})")
+if extra_months > 0:
+    years_to_show.append(f"Year {full_years + 1}: {start_date.year + 1} (Forecast for {extra_months} month{'s' if extra_months > 1 else ''})")
+
+# Year selection dropdown
+selected_year = st.selectbox(
+    "Select Year for Food Price Breakdown",
+    options=years_to_show
+)
+
+# --------------------------------------------------------------------------
+# Filter food prices based on selected year
+# --------------------------------------------------------------------------
+
+# If user selects Year 1, filter only first set of months (this could be year or remaining months)
+if selected_year.startswith("Year 1"):
+    adjusted_prices_for_year = food_prices_df.copy()
+elif selected_year.startswith("Year 2"):
+    adjusted_prices_for_year = food_prices_df.copy()
+
+# --------------------------------------------------------------------------
+# Plot the bar chart for adjusted food prices for selected year
+# --------------------------------------------------------------------------
+st.subheader(f"Adjusted Food Prices for {selected_year}")
+
+# Create the horizontal bar chart for food prices (Total Value)
+fig = go.Figure()
+
+fig.add_trace(go.Bar(
+    y=adjusted_prices_for_year['Food Name'],
+    x=adjusted_prices_for_year['Total Value'],
+    orientation='h',
+    marker=dict(color='#FF8C00'),
+    hovertemplate="<b>%{y}</b><br>Total Value: %{x}<extra></extra>"
+))
+
+# Update layout
+fig.update_layout(
+    title=f"Food Prices Adjusted for Inflation in {selected_year}",
+    xaxis=dict(title="Total Value (Adjusted for Inflation)"),
+    yaxis=dict(title="Food Name"),
+    showlegend=False,
+    template='plotly_white',
+    height=500
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
+
