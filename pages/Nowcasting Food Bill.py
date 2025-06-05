@@ -527,6 +527,8 @@ st.markdown(f"""
 # --------------------------------------------------------------------------
 # 11. Subsidy Calculation Based on Inflation Average
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # 11. Subsidy Calculation Based on Inflation Average
 # --------------------------------------------------------------------------
 
@@ -554,7 +556,7 @@ st.markdown(f"**Subsidy Value:** {subsidy_formatted}")
 # Prepare data for the bar graph (Subsidy value and Reference value of 140B)
 subsidy_data = pd.DataFrame({
     "Category": ["Subsidy Value", "Reference Value (140B)"],
-    "Amount": [subsidy, 140e9]  # 140 Billion reference value
+    "Amount": [subsidy / 1e9, 140]  # Divide subsidy by 1e9 to convert to billions
 })
 
 # Create a horizontal bar chart to visualize the subsidy value alongside the reference value
@@ -578,12 +580,11 @@ fig.update_layout(
     hoverlabel=dict(namelength=0)  # Removes the category name from the hover text
 )
 
-# Update hovertemplate to customize the hover text (remove "=" and category name)
+# Update hovertemplate to customize the hover text (convert to billions and display as B)
 fig.update_traces(
-    hovertemplate="Amount: %{x:,.2f} Billion EGP"  # Shows only the amount, no category name
+    hovertemplate="Amount: %{x:,.2f}B EGP"  # Shows the amount in billions with "B" suffix and two decimal places
 )
 
 # Show the bar chart
 st.plotly_chart(fig, use_container_width=True)
-
 
