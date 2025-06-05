@@ -527,6 +527,9 @@ st.markdown(f"""
 # --------------------------------------------------------------------------
 # 11. Subsidy Calculation Based on Inflation Average
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 11. Subsidy Calculation Based on Inflation Average
+# --------------------------------------------------------------------------
 
 # Calculate the average inflation from the forecasted values
 avg_inflation = np.mean(df_fc['Inflation'])
@@ -538,7 +541,7 @@ adjusted_value = 117.675118055328 * (1 + avg_inflation / 100)
 subsidy = (adjusted_value * 133278000000) / 117.675118055328
 
 # Display the subsidy in a formatted way
-st.subheader("Subsidy Calculation")
+st.subheader("Subsidy Responsiveness")
 
 # Display the subsidy in a more noticeable format
 subsidy_formatted = f"{subsidy / 1e9:.2f} Billion Egyptian Pounds"  # Display in billions
@@ -546,26 +549,54 @@ subsidy_formatted = f"{subsidy / 1e9:.2f} Billion Egyptian Pounds"  # Display in
 st.markdown(f"**Subsidy Value:** {subsidy_formatted}")
 
 # --------------------------------------------------------------------------
-# 11. Visualization - Bar Graph to Show Subsidy Value
+# 11. Visualization - Bar Graph to Show Subsidy Value and Reference Value
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 11. Subsidy Calculation Based on Inflation Average
 # --------------------------------------------------------------------------
 
-# Prepare data for the bar graph
+# Calculate the average inflation from the forecasted values
+avg_inflation = np.mean(df_fc['Inflation'])
+
+# Apply the multiplier to adjust the value based on inflation
+adjusted_value = 117.675118055328 * (1 + avg_inflation / 100)
+
+# Calculate the subsidy
+subsidy = (adjusted_value * 133278000000) / 117.675118055328
+
+# Display the subsidy in a formatted way
+st.subheader("Subsidy Responsiveness")
+
+# Display the subsidy in a more noticeable format
+subsidy_formatted = f"{subsidy / 1e9:.2f} Billion Egyptian Pounds"  # Display in billions
+
+st.markdown(f"**Subsidy Value:** {subsidy_formatted}")
+
+# --------------------------------------------------------------------------
+# 11. Visualization - Bar Graph to Show Subsidy Value and Reference Value
+# --------------------------------------------------------------------------
+
+# Prepare data for the bar graph (Subsidy value and Reference value of 140B)
 subsidy_data = pd.DataFrame({
-    "Category": ["Subsidy Value"],
-    "Amount": [subsidy]
+    "Category": ["Subsidy Value", "Reference Value (140B)"],
+    "Amount": [subsidy, 133e9]  # 140 Billion reference value
 })
 
-# Create a bar chart to visualize the subsidy value
+# Create a horizontal bar chart to visualize the subsidy value alongside the reference value
 import plotly.express as px
 
-fig = px.bar(subsidy_data, x="Category", y="Amount", 
+fig = px.bar(subsidy_data, x="Amount", y="Category", 
              title="Subsidy Calculation Visualization", 
-             labels={"Amount": "Subsidy Value (in billions EGP)"}, 
-             color="Category")
+             labels={"Amount": "Amount (in billions EGP)"}, 
+             orientation='h',  # Set orientation to horizontal
+             color="Category",  # Color by category
+             color_discrete_map={"Subsidy Value": "#FF8C00",  # Orange for Subsidy
+                                 "Reference Value (140B)": "#D3D3D3"})  # Light grey for Reference
 
+# Update the layout
 fig.update_layout(
-    xaxis_title="",
-    yaxis_title="Subsidy Amount (in billions EGP)",
+    xaxis_title="Amount (in billions EGP)",
+    yaxis_title="",
     template='plotly_white',
     height=400
 )
