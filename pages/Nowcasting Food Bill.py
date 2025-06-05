@@ -541,7 +541,7 @@ subsidy = (adjusted_value * 133278000000) / 117.675118055328
 st.subheader("Subsidy Calculation")
 
 # Display the subsidy in a more noticeable format
-subsidy_formatted = f"${subsidy / 1e9:.2f} Billion"  # Display in billions
+subsidy_formatted = f"{subsidy / 1e9:.2f} Billion Egyptian Pounds"  # Display in billions
 
 st.markdown(f"**Subsidy Value:** {subsidy_formatted}")
 
@@ -560,7 +560,7 @@ import plotly.express as px
 
 fig = px.bar(subsidy_data, x="Category", y="Amount", 
              title="Subsidy Calculation Visualization", 
-             labels={"Amount": "Subsidy Value (in billions)"}, 
+             labels={"Amount": "Subsidy Value (in billions EGP)"}, 
              color="Category")
 
 fig.update_layout(
