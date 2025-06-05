@@ -565,7 +565,7 @@ fig = px.bar(subsidy_data, x="Category", y="Amount",
 
 fig.update_layout(
     xaxis_title="",
-    yaxis_title="Subsidy Amount (in billions)",
+    yaxis_title="Subsidy Amount (in billions EGP)",
     template='plotly_white',
     height=400
 )
