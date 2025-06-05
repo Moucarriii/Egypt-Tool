@@ -527,31 +527,6 @@ st.markdown(f"""
 # --------------------------------------------------------------------------
 # 11. Subsidy Calculation Based on Inflation Average
 # --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
-# 11. Subsidy Calculation Based on Inflation Average
-# --------------------------------------------------------------------------
-
-# Calculate the average inflation from the forecasted values
-avg_inflation = np.mean(df_fc['Inflation'])
-
-# Apply the multiplier to adjust the value based on inflation
-adjusted_value = 117.675118055328 * (1 + avg_inflation / 100)
-
-# Calculate the subsidy
-subsidy = (adjusted_value * 133278000000) / 117.675118055328
-
-# Display the subsidy in a formatted way
-st.subheader("Subsidy Responsiveness")
-
-# Display the subsidy in a more noticeable format
-subsidy_formatted = f"{subsidy / 1e9:.2f} Billion Egyptian Pounds"  # Display in billions
-
-st.markdown(f"**Subsidy Value:** {subsidy_formatted}")
-
-# --------------------------------------------------------------------------
-# 11. Visualization - Bar Graph to Show Subsidy Value and Reference Value
-# --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
 # 11. Subsidy Calculation Based on Inflation Average
 # --------------------------------------------------------------------------
 
@@ -579,7 +554,7 @@ st.markdown(f"**Subsidy Value:** {subsidy_formatted}")
 # Prepare data for the bar graph (Subsidy value and Reference value of 140B)
 subsidy_data = pd.DataFrame({
     "Category": ["Subsidy Value", "Reference Value (140B)"],
-    "Amount": [subsidy, 133e9]  # 140 Billion reference value
+    "Amount": [subsidy, 140e9]  # 140 Billion reference value
 })
 
 # Create a horizontal bar chart to visualize the subsidy value alongside the reference value
@@ -598,8 +573,17 @@ fig.update_layout(
     xaxis_title="Amount (in billions EGP)",
     yaxis_title="",
     template='plotly_white',
-    height=400
+    height=400,
+    showlegend=False,  # Hide the legend
+    hoverlabel=dict(namelength=0)  # Removes the category name from the hover text
+)
+
+# Update hovertemplate to customize the hover text (remove "=" and category name)
+fig.update_traces(
+    hovertemplate="Amount: %{x:,.2f} Billion EGP"  # Shows only the amount, no category name
 )
 
 # Show the bar chart
 st.plotly_chart(fig, use_container_width=True)
+
+
