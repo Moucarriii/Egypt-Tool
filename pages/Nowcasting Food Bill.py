@@ -7,7 +7,7 @@ import altair as alt
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model  import Ridge
-
+import time 
 
 # ------------------------------------------------------------------------------
 # Button styling: colored backgrounds, shading, no-wrap
@@ -84,7 +84,7 @@ forecast_dates = [start_date + pd.DateOffset(months=i) for i in range(n_periods)
 st.sidebar.subheader("Exchange Rate Growth")
 exrg_future = [
     st.sidebar.number_input(
-        f"ER Growth for {dt:%b %Y}", value=0.0,
+        f"Exchange Rate for {dt:%b %Y}", value=0.0,
         key=f"er_{dt.month}_{dt.year}"
     ) for dt in forecast_dates
 ]
@@ -362,7 +362,6 @@ st.plotly_chart(fig, use_container_width=True)
 # --------------------------------------------------------------------------
 # 9. Food Price Adjustment based on Forecast Inflation
 # --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
 # 9. Food Price Adjustment based on Forecast Inflation
 # --------------------------------------------------------------------------
 
@@ -381,7 +380,7 @@ food_prices_df['Adjusted Price'] = food_prices_df['Price'] * (1 + inflation_rate
 
 # Calculate the total value (Adjusted Price * Quantity)
 food_prices_df['Total Value'] = food_prices_df['Adjusted Price'] * food_prices_df['Quantity']
-
+food_prices_df2= food_prices_df
 # --------------------------------------------------------------------------
 # Interactive Category Filter
 # --------------------------------------------------------------------------
@@ -392,7 +391,7 @@ categories = food_prices_df['Category'].unique()
 # Dropdown to select category
 selected_category = st.selectbox(
     "Select Food Category",
-    options=list(categories)
+    options=['All Categories'] + list(categories)
 )
 
 # Filter the dataframe based on the selected category
@@ -411,10 +410,14 @@ extra_months = num_months % 12  # Extra months after full years
 # Prepare a list of years for which to show food prices
 years_to_show = []
 if full_years > 0:
-    years_to_show.append(f"Year 1: {start_date.year} (Forecast for {full_years} year{'s' if full_years > 1 else ''})")
-if extra_months > 0:
-    years_to_show.append(f"Year {full_years + 1}: {start_date.year + 1} (Forecast for {extra_months} month{'s' if extra_months > 1 else ''})")
+    years_to_show.append(f"Year 1: 2025 (Forecast for {full_years} year{'s' if full_years > 1 else ''})")
 
+# If there are extra months, they will be in the next year (2026, for example)
+if extra_months > 0:
+    years_to_show.append(f"Year {full_years + 1}: {2025 + full_years} (Forecast for {extra_months} month{'s' if extra_months > 1 else ''})")
+
+
+############################################
 # Year selection dropdown
 selected_year = st.selectbox(
     "Select Year for Food Price Breakdown",
@@ -428,13 +431,19 @@ selected_year = st.selectbox(
 # If user selects Year 1, filter only first set of months (this could be year or remaining months)
 if selected_year.startswith("Year 1"):
     adjusted_prices_for_year = food_prices_df.copy()
+    year_display = start_date.year  # Display the correct year
 elif selected_year.startswith("Year 2"):
     adjusted_prices_for_year = food_prices_df.copy()
+    year_display = start_date.year + 1  # Display the second year for remaining months
+
+# Adjust the year displayed by subtracting 1 if forecast is under 12 months
+if num_months <= 12:
+    year_display = year_display  # Adjust the year to display correctly
 
 # --------------------------------------------------------------------------
 # Plot the bar chart for adjusted food prices for selected year
 # --------------------------------------------------------------------------
-st.subheader(f"Adjusted Food Prices for {selected_year}")
+st.subheader(f"Adjusted Food Prices for Year {year_display}")
 
 # Create the horizontal bar chart for food prices (Total Value)
 fig = go.Figure()
@@ -444,14 +453,14 @@ fig.add_trace(go.Bar(
     x=adjusted_prices_for_year['Total Value'],
     orientation='h',
     marker=dict(color='#FF8C00'),
-    hovertemplate="<b>%{y}</b><br>Total Value: %{x}<extra></extra>"
+    hovertemplate="<b>%{y}</b><br>Total Value:%{x:,.0f}<extra></extra>"
 ))
 
 # Update layout
 fig.update_layout(
-    title=f"Food Prices Adjusted for Inflation in {selected_year}",
-    xaxis=dict(title="Total Value (Adjusted for Inflation)"),
-    yaxis=dict(title="Food Name"),
+    title=f"Import Bill adjusted for inflation by category: {year_display} -Forecasted",
+    xaxis=dict(title=""),
+    yaxis=dict(title=""),
     showlegend=False,
     template='plotly_white',
     height=500
@@ -460,4 +469,106 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 
+# 10. Summarize and Calculate NIR for 2025 (Total value based on all data)
+# --------------------------------------------------------------------------
+# 10. Summarize and Calculate NIR for 2025 (Total value based on all data)
+# --------------------------------------------------------------------------
 
+# Calculate the total price of all food items (using all the data, regardless of category)
+total_value_all_food = food_prices_df2['Total Value'].sum()
+
+# Subtract 16,046,071,327 from the total value
+adjusted_value = total_value_all_food - 16046071327
+
+# Divide by 1000 (to convert from billions to millions)
+adjusted_value_in_millions = adjusted_value / 1000000
+
+# Add 72,134 to the result
+adjusted_value_plus_addition = adjusted_value_in_millions + 72134
+
+# Divide by 12 (to get the monthly value)
+monthly_value = adjusted_value_plus_addition / 12
+
+# Finally, divide by 46,385 (to get the NIR)
+nir_2025 = 46385 / monthly_value
+
+# Format the values to make them stand out (in billions for simplicity)
+total_value_all_food_formatted = f"${total_value_all_food / 1e9:.2f} Billion"
+nir_2025_formatted = f"{nir_2025:.2f}"
+
+# Display the values in a statement with enhanced focus and larger font
+st.markdown(f"""
+    <style>
+        .result-box {{
+            background-color: #f2f2f2;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }}
+        .result-value {{
+            font-size: 36px;
+            color: #ff5733;
+        }}
+    </style>
+    <div class="result-box">
+        <p><strong>Total Food Import Bill:</strong></p>
+        <p class="result-value">{total_value_all_food_formatted}</p>
+        <p><strong>Months of Imports Covered by Reserves for 2025:</strong></p>
+        <p class="result-value">{nir_2025_formatted}</p>
+    </div>
+""", unsafe_allow_html=True)
+
+
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 11. Subsidy Calculation Based on Inflation Average
+# --------------------------------------------------------------------------
+
+# Calculate the average inflation from the forecasted values
+avg_inflation = np.mean(df_fc['Inflation'])
+
+# Apply the multiplier to adjust the value based on inflation
+adjusted_value = 117.675118055328 * (1 + avg_inflation / 100)
+
+# Calculate the subsidy
+subsidy = (adjusted_value * 133278000000) / 117.675118055328
+
+# Display the subsidy in a formatted way
+st.subheader("Subsidy Calculation")
+
+# Display the subsidy in a more noticeable format
+subsidy_formatted = f"${subsidy / 1e9:.2f} Billion"  # Display in billions
+
+st.markdown(f"**Subsidy Value:** {subsidy_formatted}")
+
+# --------------------------------------------------------------------------
+# 11. Visualization - Bar Graph to Show Subsidy Value
+# --------------------------------------------------------------------------
+
+# Prepare data for the bar graph
+subsidy_data = pd.DataFrame({
+    "Category": ["Subsidy Value"],
+    "Amount": [subsidy]
+})
+
+# Create a bar chart to visualize the subsidy value
+import plotly.express as px
+
+fig = px.bar(subsidy_data, x="Category", y="Amount", 
+             title="Subsidy Calculation Visualization", 
+             labels={"Amount": "Subsidy Value (in billions)"}, 
+             color="Category")
+
+fig.update_layout(
+    xaxis_title="",
+    yaxis_title="Subsidy Amount (in billions)",
+    template='plotly_white',
+    height=400
+)
+
+# Show the bar chart
+st.plotly_chart(fig, use_container_width=True)
