@@ -73,10 +73,11 @@ st.title("Nowcasting Food Bill — Egypt")
 # 3. Sidebar: configuration & inputs 
 # -------------------------------------------------------------------------- 
 st.sidebar.header("Forecast Configuration") 
-n_periods = st.sidebar.number_input( 
-    "Months to forecast", min_value=1, max_value=60, value=1, step=1 
-)
 
+# Only one fixed value: 12 months forecast 
+n_periods = 12  # Fixed to 12 months
+
+# Set the start date to be 1 month after the last historical entry
 last = df_hist.iloc[-1] 
 start_date = last['Year'] + pd.DateOffset(months=1) 
 forecast_dates = [start_date + pd.DateOffset(months=i) for i in range(n_periods)]
@@ -85,26 +86,19 @@ forecast_dates = [start_date + pd.DateOffset(months=i) for i in range(n_periods)
 st.session_state['forecast_dates'] = forecast_dates
 st.session_state['start_date'] = start_date
 
+# User inputs for Exchange Rate Growth and Global Inflation (for the full 12 months)
 st.sidebar.subheader("Exchange Rate Growth") 
-exrg_future = [ 
-    st.sidebar.number_input( 
-        f"Exchange Rate for {dt:%b %Y}", value=0.0, 
-        key=f"er_{dt.month}_{dt.year}" 
-    ) for dt in forecast_dates 
-]
+exrg_input = st.sidebar.number_input("Enter Exchange Rate Growth (%) for 12 months", value=0.0)
 
 st.sidebar.subheader("Global Inflation") 
-gi_future = [ 
-    st.sidebar.number_input( 
-        f"Global Inflation for {dt:%b %Y}", value=0.0, 
-        key=f"gi_{dt.month}_{dt.year}" 
-    ) for dt in forecast_dates 
-]
+gi_input = st.sidebar.number_input("Enter Global Inflation (%) for 12 months", value=0.0)
 
+# "Run Forecast" button to trigger forecast computation
 if 'run_forecast' not in st.session_state: 
     st.session_state['run_forecast'] = False 
 if st.sidebar.button("Run Forecast"): 
     st.session_state['run_forecast'] = True 
+
 if not st.session_state['run_forecast']: 
     st.info("Fill inputs on the left and click **Run Forecast**.") 
     st.stop()
@@ -119,8 +113,8 @@ gi_lag1 = last['Global Inflation']
 forecasts = [] 
 for i, dt in enumerate(forecast_dates): 
     feat = { 
-        'Exchange Rate Growth': exrg_future[i], 
-        'Global Inflation': gi_future[i], 
+        'Exchange Rate Growth': exrg_input,  # Now a fixed value for the 12 months
+        'Global Inflation': gi_input,  # Now a fixed value for the 12 months
         'Egypt Inflation Lag1': ei_lag1, 
         'Egypt Inflation Lag2': ei_lag2, 
         'Global Inflation Lag1': gi_lag1 
@@ -128,7 +122,7 @@ for i, dt in enumerate(forecast_dates):
     pred = model.predict(pd.DataFrame([feat]))[0] 
     forecasts.append({'Year': dt, 'Inflation': pred}) 
     ei_lag2, ei_lag1 = ei_lag1, pred 
-    gi_lag1 = gi_future[i]
+    gi_lag1 = gi_input  # Update lag with the same input value
 
 df_fc = pd.DataFrame(forecasts)
 
