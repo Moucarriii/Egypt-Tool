@@ -42,7 +42,7 @@ if 'country' not in st.session_state or st.session_state['country'] != "Egypt":
 # -------------------------------------------------------------------------- 
 @st.cache_resource(show_spinner=False) 
 def load_and_train(): 
-    df = pd.read_excel('Python Data New - Interface -newJune11zz.xlsx') 
+    df = pd.read_excel('Python Data New - Interface -newJune11.xlsx') 
     df['Year'] = pd.to_datetime(df['Year'], dayfirst=True) 
     df = df.sort_values('Year').dropna(subset=[ 
         'Exchange Rate Growth','Global Inflation', 
