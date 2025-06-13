@@ -218,6 +218,7 @@ else:
 # Optional annotations
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # 1) Build chart options as before (no graphic key here)
 # ------------------------------------------------------------------------------
 chart_opts = {
@@ -241,97 +242,78 @@ chart_opts = {
 }
 
 # ------------------------------------------------------------------------------
+# 2) Only for Inflation: show annotation toggle and inject markPoint/markLine
 # ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# Optional annotations (data‐anchored callouts with markPoint/markLine)
-# ------------------------------------------------------------------------------
-show_anno = st.checkbox("Show annotations", key="anno")
-if st.session_state['chart_choice'] == 'Inflation' and show_anno:
-    global_series = chart_opts['baseOption']['series'][0]
-    egypt_series  = chart_opts['baseOption']['series'][1]
+if st.session_state['chart_choice'] == 'Inflation':
+    show_anno = st.checkbox("Show annotations", key="anno")
+    if show_anno:
+        global_series = chart_opts['baseOption']['series'][0]
+        egypt_series  = chart_opts['baseOption']['series'][1]
 
-    # Compute offsets
-    g_vals = df_plot['Global Inflation']
-    offset_g = (g_vals.max() - g_vals.min()) * 0.4
-    e_vals = df_plot['Egypt Inflation']
-    offset_e = (e_vals.max() - e_vals.min()) * 0.4
+        # Compute offsets
+        g_vals = df_plot['Global Inflation']
+        offset_g = (g_vals.max() - g_vals.min()) * 0.4
+        e_vals = df_plot['Egypt Inflation']
+        offset_e = (e_vals.max() - e_vals.min()) * 0.4
 
-    # --- Global Inflation annotation for Jun 2011 (in blue) ---
-    dt_g = pd.to_datetime('2011-06-01')
-    val_g = df_plot.at[dt_g, 'Global Inflation']
-    global_series['markPoint'] = {
-        'data': [{
-            'name': 'Currency Devaluation',
-            'coord': ['Jun 2011', val_g + offset_g]
-        }],
-        'symbol': 'circle',
-        'symbolSize': 0,
-        'label': {
-            'show': True,
-            'formatter': '{b}',
-            'position': 'top',
-            'color': '#5470C6',   # blue to match Global Inflation
-            'fontSize': 12
+        # --- Global Inflation annotation for Jun 2011 (blue) ---
+        dt_g = pd.to_datetime('2011-06-01')
+        val_g = df_plot.at[dt_g, 'Global Inflation']
+        global_series['markPoint'] = {
+            'data': [{
+                'name': 'Currency Devaluation',
+                'coord': ['Jun 2011', val_g + offset_g]
+            }],
+            'symbol': 'circle', 'symbolSize': 0,
+            'label': {
+                'show': True, 'formatter': '{b}', 'position': 'top',
+                'color': '#5470C6', 'fontSize': 12
+            }
         }
-    }
-    global_series['markLine'] = {
-        'data': [[
-            {'coord': ['Jun 2011', val_g + offset_g]},
-            {'coord': ['Jun 2011', val_g]}
-        ]],
-        'symbol': ['none','none'],
-        'lineStyle': {
-            'type': 'dashed',
-            'color': '#5470C6',   # blue pointer
-            'width': 1
-        },
-        'label': {'show': False}
-    }
-
-    # --- Egypt Inflation annotations for Oct 2016 & Jun 2022 (in green) ---
-    annotations_e = [
-        ('Oct 2016', 'Prices Eased'),
-        ('Jun 2022', 'Currency Devaluation')
-    ]
-    mp_e = []
-    ml_e = []
-    for date_str, label in annotations_e:
-        dt = pd.to_datetime(date_str, format='%b %Y')
-        val = df_plot.at[dt, 'Egypt Inflation']
-        mp_e.append({
-            'name': label,
-            'coord': [date_str, val + offset_e]
-        })
-        ml_e.append([
-            {'coord': [date_str, val + offset_e]},
-            {'coord': [date_str, val]}
-        ])
-
-    egypt_series['markPoint'] = {
-        'data': mp_e,
-        'symbol': 'circle',
-        'symbolSize': 0,
-        'label': {
-            'show': True,
-            'formatter': '{b}',
-            'position': 'top',
-            'color': '#91CC75',   # green to match Egypt Inflation
-            'fontSize': 12
+        global_series['markLine'] = {
+            'data': [[
+                {'coord': ['Jun 2011', val_g + offset_g]},
+                {'coord': ['Jun 2011', val_g]}
+            ]],
+            'symbol': ['none','none'],
+            'lineStyle': {'type':'dashed','color':'#5470C6','width':1},
+            'label': {'show': False}
         }
-    }
-    egypt_series['markLine'] = {
-        'data': ml_e,
-        'symbol': ['none','none'],
-        'lineStyle': {
-            'type': 'dashed',
-            'color': '#91CC75',   # green pointer
-            'width': 1
-        },
-        'label': {'show': False}
-    }
+
+        # --- Egypt Inflation annotations for Oct 2016 & Jun 2022 (green) ---
+        annotations_e = [
+            ('Oct 2016', 'Prices Eased'),
+            ('Jun 2022', 'Currency Devaluation')
+        ]
+        mp_e, ml_e = [], []
+        for date_str, label in annotations_e:
+            dt = pd.to_datetime(date_str, format='%b %Y')
+            val = df_plot.at[dt, 'Egypt Inflation']
+            mp_e.append({
+                'name': label,
+                'coord': [date_str, val + offset_e]
+            })
+            ml_e.append([
+                {'coord': [date_str, val + offset_e]},
+                {'coord': [date_str, val]}
+            ])
+
+        egypt_series['markPoint'] = {
+            'data': mp_e, 'symbol':'circle','symbolSize':0,
+            'label': {
+                'show': True, 'formatter':'{b}', 'position':'top',
+                'color':'#91CC75','fontSize':12
+            }
+        }
+        egypt_series['markLine'] = {
+            'data': ml_e,
+            'symbol': ['none','none'],
+            'lineStyle': {'type':'dashed','color':'#91CC75','width':1},
+            'label': {'show': False}
+        }
 
 # ------------------------------------------------------------------------------
-# Finally render
+# 3) Render the chart (annotations only apply to Inflation)
 # ------------------------------------------------------------------------------
 st_echarts(chart_opts, height="600px")
 
