@@ -16,7 +16,7 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
 def authenticate():
-    st.session_state['authenticated'] = (st.session_state.get("pwd") == "ffd")
+    st.session_state['authenticated'] = (st.session_state.get("pwd") == "ffd4")
 
 if not st.session_state['authenticated']:
     st.text_input("Enter password", type="password", key="pwd", on_change=authenticate)
