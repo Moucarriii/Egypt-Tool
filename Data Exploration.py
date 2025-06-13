@@ -151,8 +151,8 @@ def load_sub_imp_nir():
     df['Year'] = pd.to_datetime(df['Year'], format='%Y')
     return (
         df.sort_values('Year')
-          .dropna(subset=['Subsidies','Food Imports','NIR'])
-          .set_index('Year')[['Subsidies','Food Imports','NIR']]
+          .dropna(subset=['Subsidies','Food Imports','Reserves-to-Imports (Months)'])
+          .set_index('Year')[['Subsidies','Food Imports','Reserves-to-Imports (Months)']]
           .round(2)
     )
 df_sub_imp_nir = load_sub_imp_nir()
@@ -171,8 +171,8 @@ with col1:
     if st.button("Inflation", key="btn_inf"):
         st.session_state['chart_choice'] = 'Inflation'
 with col2:
-    if st.button("Subsidies & Imports & NIR", key="btn_sub"):
-        st.session_state['chart_choice'] = 'Subsidies & Imports & NIR'
+    if st.button("Subsidies & Imports & Reserves/Import Ratio", key="btn_sub"):
+        st.session_state['chart_choice'] = 'Subsidies & Imports & Reserves/Import Ratio'
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ for i in range(len(x_labels)):
     series = []
     for col in df_plot.columns:
         cfg = {'name': col, 'data': slice_df[col].tolist()}
-        if st.session_state['chart_choice'] != 'Inflation' and col == 'NIR':
+        if st.session_state['chart_choice'] != 'Inflation' and col == 'Reserves-to-Imports (Months)':
             cfg.update({'type': 'bar', 'yAxisIndex': 1})
         else:
             cfg.update({'type': 'line', 'smooth': True})
@@ -211,17 +211,90 @@ if st.session_state['chart_choice'] == 'Inflation':
 else:
     y_axes = [
         {'type': 'value', 'name': 'Subsidies & Imports ($)', 'axisLabel': {'formatter': '${value}'}, 'splitLine': {'show': True}},
-        {'type': 'value', 'name': 'NIR', 'position': 'right', 'axisLabel': {'formatter': '{value}'}, 'splitLine': {'show': False}}
+        {'type': 'value', 'name': 'Reserves-to-Imports (Months)', 'position': 'right', 'axisLabel': {'formatter': '{value}'}, 'splitLine': {'show': False}}
     ]
 
 # ------------------------------------------------------------------------------
 # Optional annotations
 # ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Optional annotations (with pointer lines)
+# --------------------------------------------------------------------------
 graphics = []
 if st.session_state['chart_choice']=='Inflation' and st.checkbox("Show annotations", key="anno"):
     graphics = [
-        {'type':'text','left':'35%','top':'20%','style':{'text':'Currency Devaluation','fill':'#91CC75','font':'14px sans-serif'}},
-        {'type':'text','left':'12%','top':'20%','style':{'text':'Global supply, \noil prices eased','fill':'#5470C6','font':'14px sans-serif'}}
+        # 1) Annotation text for Currency Devaluation
+        {
+            'type': 'text',
+            'left': '35%',
+            'top': '20%',
+            'style': {
+                'text': 'Currency Devaluation',
+                'fill': '#91CC75',
+                'font': '14px sans-serif'
+            }
+        },
+        # 2) Dashed pointer from the label to the chart point
+        {
+            'type': 'line',
+            'shape': {
+                'x1': 550, 'y1': 150,   # tail of the pointer (px from top-left)
+                'x2': 610, 'y2': 320    # head of the pointer at the data point
+            },
+            'style': {
+                'stroke': '#91CC75',
+                'lineWidth': 2,
+                'lineDash': [5, 5]
+            }
+        },
+        # 3) Annotation text for Global supply / oil easing
+        {
+            'type': 'text',
+            'left': '12%',
+            'top': '20%',
+            'style': {
+                'text': 'Global supply, \noil prices eased',
+                'fill': '#5470C6',
+                'font': '14px sans-serif'
+            }
+        },
+        # 4) Dashed pointer for that label
+        {
+            'type': 'line',
+            'shape': {
+                'x1': 200, 'y1': 160,
+                'x2': 170, 'y2': 210
+            },
+            'style': {
+                'stroke': '#5470C6',
+                'lineWidth': 2,
+                'lineDash': [5, 5]
+            }
+        },
+        # 5) Annotation text for Global supply / oil easing
+        {
+            'type': 'text',
+            'left': '65%',
+            'top': '20%',
+            'style': {
+                'text': 'Currency Devaluation',
+                'fill': '#91CC75',
+                'font': '14px sans-serif'
+            }
+        },
+        # 6) Dashed pointer for that label
+        {
+            'type': 'line',
+            'shape': {
+                'x1': 990, 'y1': 150,
+                'x2': 1080, 'y2': 280
+            },
+            'style': {
+                'stroke': '#91CC75',
+                'lineWidth': 2,
+                'lineDash': [5, 5]
+            }
+        }
     ]
 
 # ------------------------------------------------------------------------------
