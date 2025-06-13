@@ -147,69 +147,108 @@ view = st.session_state['view_choice']
 
 # -------------------------------------------------------------------------- 
 # 6. Charts based on selection 
-# -------------------------------------------------------------------------- 
-if view == 'Yearly average': 
-    st.subheader("Yearly Average Inflation: Historical vs Forecast") 
-    hist_avg = ( 
-        df_hist.assign(Year=df_hist['Year'].dt.year) 
-               .groupby('Year', as_index=False)['Egypt Inflation'] 
-               .mean() 
-               .rename(columns={'Egypt Inflation':'Inflation'}) 
-    ) 
-    hist_avg['Type'] = 'Historical' 
-    fc_avg = ( 
-        df_fc.assign(Year=df_fc['Year'].dt.year) 
-             .groupby('Year', as_index=False)['Inflation'] 
-             .mean() 
-    ) 
-    fc_avg['Type'] = 'Forecast' 
-    plot_df = pd.concat([hist_avg, fc_avg], ignore_index=True) 
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 6. Charts based on selection (UPDATED)
+# --------------------------------------------------------------------------
+if view == 'Yearly average':
+    st.subheader("Yearly Average Inflation: Historical vs Forecast")
 
-    yearly = alt.Chart(plot_df).mark_line(interpolate='linear', strokeWidth=3).encode( 
-        x=alt.X('Year:O', axis=alt.Axis(title='Year', labelAngle=0)), 
-        y=alt.Y('Inflation:Q', axis=alt.Axis(title='Avg Inflation (%)')), 
-        color=alt.Color('Type:N', 
-                        scale=alt.Scale(domain=['Historical','Forecast'], 
-                                        range=['steelblue','orange']), 
-                        legend=alt.Legend(title=None, orient='top-right')),  
-        strokeDash=alt.StrokeDash('Type:N', 
-                                  scale=alt.Scale(domain=['Historical','Forecast'], 
-                                                  range=[[],[4,4]]), 
-                                  legend=None) 
-    ) 
-    pts = alt.Chart(plot_df[plot_df['Type']=='Forecast']).mark_point(size=100).encode( 
-        x='Year:O', 
-        y='Inflation:Q', 
-        color=alt.value('orange') 
-    ) 
-    st.altair_chart((yearly + pts).properties(width=700, height=400), 
-                    use_container_width=True) 
+    # Historical averages
+    hist_avg = (
+        df_hist.assign(Year=df_hist['Year'].dt.year)
+               .groupby('Year', as_index=False)['Egypt Inflation']
+               .mean()
+               .rename(columns={'Egypt Inflation':'Inflation'})
+    )
+    hist_avg['Type'] = 'Historical'
 
-else: 
-    st.subheader("Monthly Inflation: Last Historical Year & Forecast") 
-    last_year = df_hist['Year'].dt.year.max() 
-    hist_monthly = ( 
-        df_hist[df_hist['Year'].dt.year == last_year] 
-               [['Year','Egypt Inflation']] 
-               .rename(columns={'Egypt Inflation':'Inflation'}) 
-    ) 
-    hist_monthly['Type'] = 'Historical' 
-    fc_monthly = df_fc.copy() 
-    fc_monthly['Type'] = 'Forecast' 
-    monthly_df = pd.concat([hist_monthly, fc_monthly], ignore_index=True) 
+    # Forecast averages
+    fc_avg = (
+        df_fc.assign(Year=df_fc['Year'].dt.year)
+             .groupby('Year', as_index=False)['Inflation']
+             .mean()
+    )
+    fc_avg['Type'] = 'Forecast'
 
-    base = alt.Chart(monthly_df).encode( 
-        x=alt.X('yearmonth(Year):T', 
-                axis=alt.Axis(title='', format='%b %Y', labelAngle=0)), 
-        y=alt.Y('Inflation:Q', axis=alt.Axis(title='Inflation Rate (%)')), 
-        color=alt.Color('Type:N', 
-                        scale=alt.Scale(domain=['Historical','Forecast'], 
-                                        range=['steelblue','orange']), 
-                        legend=alt.Legend(title=None, orient='top-right')) 
-    ) 
-    line = base.mark_line(strokeWidth=3) 
-    pts = base.mark_point(size=60).transform_filter(alt.datum.Type=='Forecast') 
-    st.altair_chart((line + pts).properties(width=700, height=350), use_container_width=True)
+    # Build a two-point segment so the forecast line connects to the last historical point
+    last_hist = hist_avg[hist_avg['Year'] == hist_avg['Year'].max()][['Year','Inflation']]
+    fc_segment = pd.concat([last_hist, fc_avg], ignore_index=True)
+
+    # Plot historical line
+    hist_line = alt.Chart(hist_avg).mark_line(strokeWidth=3).encode(
+        x=alt.X('Year:O', axis=alt.Axis(title='Year', labelAngle=0)),
+        y=alt.Y('Inflation:Q', axis=alt.Axis(title='Avg Inflation (%)')),
+        color=alt.value('steelblue')
+    )
+
+    # Plot forecast segment (dashed)
+    fc_line = alt.Chart(fc_segment).mark_line(strokeWidth=3, strokeDash=[4,4]).encode(
+        x='Year:O',
+        y='Inflation:Q',
+        color=alt.value('orange')
+    )
+
+    # Plot forecast points
+    fc_pts = alt.Chart(fc_avg).mark_point(size=100).encode(
+        x='Year:O',
+        y='Inflation:Q',
+        color=alt.value('orange')
+    )
+
+    # Combine and render
+    st.altair_chart((hist_line + fc_line + fc_pts)
+                    .properties(width=700, height=400),
+                    use_container_width=True)
+
+else:
+    st.subheader("Monthly Inflation: Last Historical Year & Forecast")
+
+    # Historical monthly for the last year
+    last_year = df_hist['Year'].dt.year.max()
+    hist_monthly = (
+        df_hist[df_hist['Year'].dt.year == last_year]
+               [['Year','Egypt Inflation']]
+               .rename(columns={'Egypt Inflation':'Inflation'})
+    )
+    hist_monthly['Type'] = 'Historical'
+
+    # Forecast monthly
+    fc_monthly = df_fc.copy()
+    fc_monthly['Type'] = 'Forecast'
+
+    # Build a two-point segment so the forecast line connects to the last historical month
+    last_month = hist_monthly.iloc[[-1]][['Year','Inflation']]
+    fc_segment_monthly = pd.concat(
+        [last_month, fc_monthly[['Year','Inflation']]],
+        ignore_index=True
+    )
+
+    # Plot historical line
+    hist_line_m = alt.Chart(hist_monthly).mark_line(strokeWidth=3).encode(
+        x=alt.X('yearmonth(Year):T', axis=alt.Axis(title='', format='%b %Y', labelAngle=0)),
+        y=alt.Y('Inflation:Q', axis=alt.Axis(title='Inflation Rate (%)')),
+        color=alt.value('steelblue')
+    )
+
+    # Plot forecast segment (dashed)
+    fc_line_m = alt.Chart(fc_segment_monthly).mark_line(strokeWidth=3, strokeDash=[4,4]).encode(
+        x=alt.X('yearmonth(Year):T'),
+        y='Inflation:Q',
+        color=alt.value('orange')
+    )
+
+    # Plot forecast points
+    fc_pts_m = alt.Chart(fc_monthly).mark_point(size=60).encode(
+        x=alt.X('yearmonth(Year):T'),
+        y='Inflation:Q',
+        color=alt.value('orange')
+    )
+
+    # Combine and render
+    st.altair_chart((hist_line_m + fc_line_m + fc_pts_m)
+                    .properties(width=700, height=350),
+                    use_container_width=True)
 
 # -------------------------------------------------------------------------- 
 # 7. Forecast Results Table 
