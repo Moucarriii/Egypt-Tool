@@ -16,7 +16,7 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
 def authenticate():
-    st.session_state['authenticated'] = (st.session_state.get("pwd") == "ffd4")
+    st.session_state['authenticated'] = (st.session_state.get("pwd") == "ffd")
 
 if not st.session_state['authenticated']:
     st.text_input("Enter password", type="password", key="pwd", on_change=authenticate)
@@ -217,88 +217,8 @@ else:
 # ------------------------------------------------------------------------------
 # Optional annotations
 # ------------------------------------------------------------------------------
-# --------------------------------------------------------------------------
-# Optional annotations (with pointer lines)
-# --------------------------------------------------------------------------
-graphics = []
-if st.session_state['chart_choice']=='Inflation' and st.checkbox("Show annotations", key="anno"):
-    graphics = [
-        # 1) Annotation text for Currency Devaluation
-        {
-            'type': 'text',
-            'left': '35%',
-            'top': '20%',
-            'style': {
-                'text': 'Currency Devaluation',
-                'fill': '#91CC75',
-                'font': '14px sans-serif'
-            }
-        },
-        # 2) Dashed pointer from the label to the chart point
-        {
-            'type': 'line',
-            'shape': {
-                'x1': 550, 'y1': 150,   # tail of the pointer (px from top-left)
-                'x2': 610, 'y2': 320    # head of the pointer at the data point
-            },
-            'style': {
-                'stroke': '#91CC75',
-                'lineWidth': 2,
-                'lineDash': [5, 5]
-            }
-        },
-        # 3) Annotation text for Global supply / oil easing
-        {
-            'type': 'text',
-            'left': '12%',
-            'top': '20%',
-            'style': {
-                'text': 'Global supply, \noil prices eased',
-                'fill': '#5470C6',
-                'font': '14px sans-serif'
-            }
-        },
-        # 4) Dashed pointer for that label
-        {
-            'type': 'line',
-            'shape': {
-                'x1': 200, 'y1': 160,
-                'x2': 170, 'y2': 210
-            },
-            'style': {
-                'stroke': '#5470C6',
-                'lineWidth': 2,
-                'lineDash': [5, 5]
-            }
-        },
-        # 5) Annotation text for Global supply / oil easing
-        {
-            'type': 'text',
-            'left': '65%',
-            'top': '20%',
-            'style': {
-                'text': 'Currency Devaluation',
-                'fill': '#91CC75',
-                'font': '14px sans-serif'
-            }
-        },
-        # 6) Dashed pointer for that label
-        {
-            'type': 'line',
-            'shape': {
-                'x1': 990, 'y1': 150,
-                'x2': 1080, 'y2': 280
-            },
-            'style': {
-                'stroke': '#91CC75',
-                'lineWidth': 2,
-                'lineDash': [5, 5]
-            }
-        }
-    ]
-
 # ------------------------------------------------------------------------------
-# Chart config & render
+# 1) Build chart options as before (no graphic key here)
 # ------------------------------------------------------------------------------
 chart_opts = {
     'baseOption': {
@@ -313,13 +233,106 @@ chart_opts = {
         },
         'tooltip': {'trigger':'axis'},
         'legend': {'data': list(df_plot.columns), 'left': 'center'},
-        'xAxis': {'type':'category','data': x_labels},
+        'xAxis': {'type': 'category', 'data': x_labels},
         'yAxis': y_axes,
-        'series': options[-1]['series'],
-        'graphic': graphics
+        'series': options[-1]['series']
     },
     'options': options
 }
+
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Optional annotations (data‐anchored callouts with markPoint/markLine)
+# ------------------------------------------------------------------------------
+show_anno = st.checkbox("Show annotations", key="anno")
+if st.session_state['chart_choice'] == 'Inflation' and show_anno:
+    global_series = chart_opts['baseOption']['series'][0]
+    egypt_series  = chart_opts['baseOption']['series'][1]
+
+    # Compute offsets
+    g_vals = df_plot['Global Inflation']
+    offset_g = (g_vals.max() - g_vals.min()) * 0.4
+    e_vals = df_plot['Egypt Inflation']
+    offset_e = (e_vals.max() - e_vals.min()) * 0.4
+
+    # --- Global Inflation annotation for Jun 2011 (in blue) ---
+    dt_g = pd.to_datetime('2011-06-01')
+    val_g = df_plot.at[dt_g, 'Global Inflation']
+    global_series['markPoint'] = {
+        'data': [{
+            'name': 'Currency Devaluation',
+            'coord': ['Jun 2011', val_g + offset_g]
+        }],
+        'symbol': 'circle',
+        'symbolSize': 0,
+        'label': {
+            'show': True,
+            'formatter': '{b}',
+            'position': 'top',
+            'color': '#5470C6',   # blue to match Global Inflation
+            'fontSize': 12
+        }
+    }
+    global_series['markLine'] = {
+        'data': [[
+            {'coord': ['Jun 2011', val_g + offset_g]},
+            {'coord': ['Jun 2011', val_g]}
+        ]],
+        'symbol': ['none','none'],
+        'lineStyle': {
+            'type': 'dashed',
+            'color': '#5470C6',   # blue pointer
+            'width': 1
+        },
+        'label': {'show': False}
+    }
+
+    # --- Egypt Inflation annotations for Oct 2016 & Jun 2022 (in green) ---
+    annotations_e = [
+        ('Oct 2016', 'Prices Eased'),
+        ('Jun 2022', 'Currency Devaluation')
+    ]
+    mp_e = []
+    ml_e = []
+    for date_str, label in annotations_e:
+        dt = pd.to_datetime(date_str, format='%b %Y')
+        val = df_plot.at[dt, 'Egypt Inflation']
+        mp_e.append({
+            'name': label,
+            'coord': [date_str, val + offset_e]
+        })
+        ml_e.append([
+            {'coord': [date_str, val + offset_e]},
+            {'coord': [date_str, val]}
+        ])
+
+    egypt_series['markPoint'] = {
+        'data': mp_e,
+        'symbol': 'circle',
+        'symbolSize': 0,
+        'label': {
+            'show': True,
+            'formatter': '{b}',
+            'position': 'top',
+            'color': '#91CC75',   # green to match Egypt Inflation
+            'fontSize': 12
+        }
+    }
+    egypt_series['markLine'] = {
+        'data': ml_e,
+        'symbol': ['none','none'],
+        'lineStyle': {
+            'type': 'dashed',
+            'color': '#91CC75',   # green pointer
+            'width': 1
+        },
+        'label': {'show': False}
+    }
+
+# ------------------------------------------------------------------------------
+# Finally render
+# ------------------------------------------------------------------------------
 st_echarts(chart_opts, height="600px")
 
 # ------------------------------------------------------------------------------
